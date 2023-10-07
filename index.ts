@@ -47,6 +47,7 @@ const instanceMemoryInGbs = config.getNumber("instanceMemoryInGbs") ?? 8;
 const ingressSecurityRules =
   config.getObject<SecurityRuleConfig[]>("ingressSecurityRules") ||
   defaultIngressSecurityRules;
+const osImageId_ = config.get("osImageId");
 
 // Compartment
 const compartment = new oci.identity.Compartment(`${project}-${stack}`, {
@@ -125,18 +126,20 @@ new oci.core.DefaultRouteTable("route-table", {
 });
 
 // Get OS Image
-const osImageId = compartment.id.apply((compartmentId) =>
-  oci.core
-    .getImages({
-      compartmentId,
-      operatingSystem: "Canonical Ubuntu",
-      operatingSystemVersion: "22.04",
-      sortBy: "TIMECREATED",
-      sortOrder: "DESC",
-      shape: instanceShape,
-    })
-    .then((v) => v.images[0].id)
-);
+const osImageId =
+  osImageId_ ||
+  compartment.id.apply((compartmentId) =>
+    oci.core
+      .getImages({
+        compartmentId,
+        operatingSystem: "Canonical Ubuntu",
+        operatingSystemVersion: "22.04",
+        sortBy: "TIMECREATED",
+        sortOrder: "DESC",
+        shape: instanceShape,
+      })
+      .then((v) => v.images[0].id)
+  );
 
 const availabilityDomainName = compartment.id.apply((compartmentId) =>
   oci.identity
@@ -179,3 +182,4 @@ const instance = new oci.core.Instance(
 // Output
 export const compartmentName = compartment.name;
 export const instanceIp = instance.publicIp;
+export const osImageIdSelected = osImageId;
